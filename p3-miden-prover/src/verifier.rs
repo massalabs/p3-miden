@@ -315,6 +315,52 @@ where
 
     let air_width = air.width();
     let bus_types = air.bus_types();
+
+    if opened_values.trace_local.len() != air_width {
+        return Err(VerificationError::MyError(100));
+    }
+    if opened_values.trace_next.len() != air_width {
+        return Err(VerificationError::MyError(101));
+    }
+    if opened_values.quotient_chunks.len() != quotient_degree {
+        return Err(VerificationError::MyError(102));
+    }
+    if !opened_values
+            .quotient_chunks
+            .iter()
+            .all(|qc| qc.len() == SC::Challenge::DIMENSION) {
+        return Err(VerificationError::MyError(103));
+    }
+    if num_randomness > 0 {
+        
+        if opened_values.aux_trace_local.is_none() {
+            return Err(VerificationError::MyError(104));
+        }
+        if opened_values.aux_trace_next.is_none() {
+            return Err(VerificationError::MyError(105));
+        }
+
+        if opened_values.aux_trace_local.as_ref().unwrap().len() != aux_width * SC::Challenge::DIMENSION {
+            return Err(VerificationError::MyError(106));
+        }
+        if opened_values.aux_trace_next.as_ref().unwrap().len() != aux_width * SC::Challenge::DIMENSION {
+            return Err(VerificationError::MyError(107));
+        }
+        if aux_finals.len() != aux_width {
+            return Err(VerificationError::MyError(108));
+        }
+    } else {
+        if !opened_values.aux_trace_local.is_none() {
+            return Err(VerificationError::MyError(109));
+        }
+        if !opened_values.aux_trace_next.is_none() {
+            return Err(VerificationError::MyError(110));
+        }
+        if !aux_finals.is_empty() {
+            return Err(VerificationError::MyError(111));
+        }
+    }
+
     let valid_shape = opened_values.trace_local.len() == air_width
         && opened_values.trace_next.len() == air_width
         && opened_values.quotient_chunks.len() == quotient_degree
