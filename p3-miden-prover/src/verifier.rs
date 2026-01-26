@@ -133,9 +133,9 @@ where
     let aux = match (aux_local, aux_next) {
         (Some(local), Some(next)) => {
             aux_local_ext = verifier_row_to_ext::<Val<SC>, SC::Challenge>(local)
-                .ok_or(VerificationError::InvalidProofShape)?;
+                .ok_or(VerificationError::MyError(0))?;
             aux_next_ext = verifier_row_to_ext::<Val<SC>, SC::Challenge>(next)
-                .ok_or(VerificationError::InvalidProofShape)?;
+                .ok_or(VerificationError::MyError(1))?;
 
             VerticalPair::new(
                 RowMajorMatrixView::new_row(&aux_local_ext),
@@ -210,7 +210,7 @@ where
         .map_or(0, |v| v.len());
     if preprocessed_width != preprocessed_local_len || preprocessed_width != preprocessed_next_len {
         // Verifier expects preprocessed trace while proof does not have it, or vice versa
-        return Err(VerificationError::InvalidProofShape);
+        return Err(VerificationError::MyError(2));
     }
 
     if preprocessed_width > 0 {
@@ -338,7 +338,7 @@ where
             opened_values.aux_trace_local.is_none() && opened_values.aux_trace_next.is_none() && aux_finals.is_empty()
         };
     if !valid_shape {
-        return Err(VerificationError::InvalidProofShape);
+        return Err(VerificationError::MyError(3));
     }
     let randomness = if num_randomness != 0 {
         let randomness: Vec<SC::Challenge> = (0..num_randomness)
@@ -348,7 +348,7 @@ where
         if let Some(aux_commit) = &commitments.aux {
             challenger.observe(aux_commit.clone());
         } else {
-            return Err(VerificationError::InvalidProofShape);
+            return Err(VerificationError::MyError(4));
         }
         for aux_final in aux_finals {
             challenger.observe_algebra_element(*aux_final);
@@ -358,7 +358,7 @@ where
     } else {
         // No aux trace expected
         if commitments.aux.is_some() {
-            return Err(VerificationError::InvalidProofShape);
+            return Err(VerificationError::MyError(5));
         }
         vec![]
     };
@@ -415,7 +415,7 @@ where
             zip_eq(
                 randomized_quotient_chunks_domains.iter(),
                 &opened_values.quotient_chunks,
-                VerificationError::InvalidProofShape,
+                VerificationError::MyError(6),
             )?
             .map(|(domain, values)| (*domain, vec![(zeta, values.clone())]))
             .collect_vec(),
@@ -427,11 +427,11 @@ where
         let aux_local = opened_values
             .aux_trace_local
             .as_ref()
-            .ok_or(VerificationError::InvalidProofShape)?;
+            .ok_or(VerificationError::MyError(7))?;
         let aux_next = opened_values
             .aux_trace_next
             .as_ref()
-            .ok_or(VerificationError::InvalidProofShape)?;
+            .ok_or(VerificationError::MyError(8))?;
         coms_to_verify.push((
             aux_commit.clone(),
             vec![(
@@ -446,11 +446,11 @@ where
         let preprocessed_local = opened_values
             .preprocessed_local
             .as_ref()
-            .ok_or(VerificationError::InvalidProofShape)?;
+            .ok_or(VerificationError::MyError(9))?;
         let preprocessed_next = opened_values
             .preprocessed_next
             .as_ref()
-            .ok_or(VerificationError::InvalidProofShape)?;
+            .ok_or(VerificationError::MyError(10))?;
 
         coms_to_verify.push((
             preprocessed_commit.unwrap(),
@@ -478,7 +478,7 @@ where
     for (idx, (bus_type, aux_final)) in bus_types.iter().zip(aux_finals).enumerate() {
         let public_inputs_for_bus = *var_length_public_inputs
             .get(idx)
-            .ok_or(VerificationError::InvalidProofShape)?;
+            .ok_or(VerificationError::MyError(11))?;
         let expected_final = match bus_type {
             BusType::Multiset => bus_multiset_boundary_varlen::<_, SC>(
                 &randomness,
@@ -560,6 +560,7 @@ pub fn bus_logup_boundary_varlen<
 
 #[derive(Debug)]
 pub enum VerificationError<PcsErr> {
+    MyError(u8),
     InvalidProofShape,
     /// An error occurred while verifying the claimed openings.
     InvalidOpeningArgument(PcsErr),
